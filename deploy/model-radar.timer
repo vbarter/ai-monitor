@@ -1,0 +1,14 @@
+[Unit]
+Description=Hourly model_radar scan
+
+[Timer]
+# OnCalendar uses the host timezone. Set the host to Asia/Shanghai
+# (`timedatectl set-timezone Asia/Shanghai`) so the hour boundary matches
+# the monitor clock. Display times are Asia/Shanghai either way.
+Unit=model-radar.service
+OnCalendar=hourly
+AccuracySec=1min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

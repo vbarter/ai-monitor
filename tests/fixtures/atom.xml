@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Lab</title>
+  <entry>
+    <id>urn:llama-5</id>
+    <title>Announcing Llama 5</title>
+    <link rel="alternate" href="https://example.com/llama-5"/>
+    <updated>2026-11-01T00:00:00Z</updated>
+    <summary>Open weights for Llama 5.</summary>
+  </entry>
+</feed>

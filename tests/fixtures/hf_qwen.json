@@ -1,0 +1,22 @@
+[
+  {
+    "id": "Qwen/Qwen3-8B",
+    "createdAt": "2026-11-20T01:00:00.000Z",
+    "private": false,
+    "pipeline_tag": "text-generation",
+    "tags": ["text-generation", "safetensors"]
+  },
+  {
+    "id": "Qwen/Qwen3-8B-GGUF",
+    "createdAt": "2026-11-20T02:00:00.000Z",
+    "private": false,
+    "pipeline_tag": "text-generation",
+    "tags": ["gguf"]
+  },
+  {
+    "id": "Qwen/secret-internal",
+    "createdAt": "2026-11-20T03:00:00.000Z",
+    "private": true,
+    "tags": []
+  }
+]
