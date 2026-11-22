@@ -8,6 +8,7 @@ from model_radar.adapters.anthropic import AnthropicAdapter
 from model_radar.adapters.base import Adapter
 from model_radar.adapters.deepseek import DeepSeekAdapter
 from model_radar.adapters.gemini import GeminiAdapter
+from model_radar.adapters.html_changelog import HtmlChangelogAdapter
 from model_radar.adapters.huggingface import HuggingFaceOrgAdapter
 from model_radar.adapters.openai import OpenAIAdapter
 from model_radar.adapters.openrouter import OpenRouterAdapter
@@ -43,7 +44,7 @@ def build_sources(config: Config, env: Mapping) -> tuple[list[Adapter], list[str
             adapters.append(RssAdapter(feed))
     for page in config.changelogs:
         if page.enabled:
-            notes.append(f"skip changelog {page.id}: html changelog adapter is a later slice")
+            adapters.append(HtmlChangelogAdapter(page))
     return adapters, notes
 
 

@@ -36,14 +36,20 @@ huggingface:
     - '(?i)(gguf|awq|gptq|mlx|exl2|exl3|onnx|bnb|fp8|fp4|int4|int8|lora|adapter|\d+bit|\d+(?:\.\d+)?bpw)'
 
 providers:
+  # List-models is kept in code but is not the primary path. Turn one on
+  # only if you want a catalog diff and the key is set; an empty key still skips.
   openai:
     env: OPENAI_API_KEY
+    enabled: false
   anthropic:
     env: ANTHROPIC_API_KEY
+    enabled: false
   gemini:
     env: GEMINI_API_KEY
+    enabled: false
   deepseek:
     env: DEEPSEEK_API_KEY
+    enabled: false
   openrouter:
     env: OPENROUTER_API_KEY
     optional: true
@@ -65,21 +71,67 @@ providers:
     env: SILICONFLOW_API_KEY
     enabled: false
 
-# HTML changelogs are a later slice. Listed so the URLs stay with the config.
+# Official pages. One GET per scan. filter:false means every new item is an
+# official_release (the page itself is the release index). official_page keeps
+# non-model posts as digest notes.
 changelogs:
-  - {id: kimi, provider: moonshot, url: "https://platform.kimi.ai/docs/platform-changelog", enabled: false}
-  - {id: zai, provider: zhipu, url: "https://docs.z.ai/release-notes/new-released", enabled: false}
-  - {id: minimax, provider: minimax, url: "https://platform.minimax.io/docs/release-notes/models", enabled: false}
+  - id: deepseek-news
+    provider: deepseek
+    url: https://www.deepseek.com/en/news/
+    enabled: true
+    profile: deepseek_news
+    filter: false
+  - id: deepseek-updates
+    provider: deepseek
+    url: https://api-docs.deepseek.com/updates.md
+    enabled: true
+    profile: markdown_dated
+    filter: false
+  - id: kimi-blog
+    provider: moonshot
+    url: https://www.kimi.ai/blog/
+    enabled: true
+    profile: kimi_blog
+    filter: official_page
+  - id: minimax-news
+    provider: minimax
+    url: https://www.minimax.io/news
+    enabled: true
+    profile: minimax_news
+    filter: official_page
+  - id: anthropic-news
+    provider: anthropic
+    url: https://www.anthropic.com/news
+    enabled: true
+    profile: anthropic_news
+    filter: official_page
+  - id: meta-blog
+    provider: meta
+    url: https://ai.meta.com/blog/
+    enabled: true
+    profile: meta_blog
+    filter: official_page
+  # Not enabled: on 2026-11-22 this URL was one SSR landing page for the
+  # current flagship, with section headings like "Benchmark Comparison".
+  # There is no post index in the HTML. Open weights still come from HF XiaomiMiMo.
+  - id: mimo-blog
+    provider: xiaomi
+    url: https://mimo.xiaomi.com/blog
+    enabled: false
+  # Older doc URLs. Not the verified post indexes above, so they stay off.
+  - {id: kimi-platform, provider: moonshot, url: "https://platform.kimi.ai/docs/platform-changelog", enabled: false}
   - {id: qianfan, provider: baidu, url: "https://cloud.baidu.com/doc/qianfan/s/Kmh4stnjp", enabled: false}
-  - {id: mimo-news, provider: xiaomi, url: "https://mimo.mi.com/docs/zh-CN/news", enabled: false}
-  - {id: deepseek-updates, provider: deepseek, url: "https://api-docs.deepseek.com/zh-cn/updates/", enabled: false}
+  - {id: mimo-docs, provider: xiaomi, url: "https://mimo.mi.com/docs/zh-CN/news", enabled: false}
+  - {id: deepseek-updates-zh, provider: deepseek, url: "https://api-docs.deepseek.com/zh-cn/updates/", enabled: false}
   - {id: bailian-new, provider: alibaba, url: "https://help.aliyun.com/zh/model-studio/newly-released-models", enabled: false}
   - {id: hunyuan, provider: tencent, url: "https://hunyuan.tencent.com/model/open-source-model", enabled: false}
 
 rss:
   - {id: openai-news, provider: openai, url: "https://openai.com/news/rss.xml", filter: release_keywords}
   - {id: openai-release-notes, provider: openai, url: "https://openai.com/products/release-notes/rss.xml", filter: release_keywords}
+  # Working DeepMind feed. Do not switch this to /discover/blog/rss.xml (404).
   - {id: deepmind, provider: google, url: "https://deepmind.google/blog/rss.xml", filter: release_keywords}
   - {id: hf-blog, provider: huggingface, url: "https://huggingface.co/blog/feed.xml", filter: release_keywords}
   - {id: qwen-legacy-blog, provider: alibaba, url: "https://qwenlm.github.io/blog/index.xml", filter: release_keywords}
+  - {id: zai-releases, provider: zhipu, url: "https://docs.z.ai/release-notes/new-released/rss.xml", filter: false, kind: official_release, first_party: true}
   - {id: openrouter-rss, provider: openrouter, url: "https://openrouter.ai/api/v1/models?use_rss=true", filter: false, kind: catalog_add, first_party: false, id_mode: openrouter}

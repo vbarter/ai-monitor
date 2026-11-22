@@ -4,26 +4,67 @@
 
 这不是 dsplugin 的关键词雷达。这里只看基础模型发布。
 
-## MVP 里有什么
+## 主路径
 
-- Hugging Face 机构白名单：`GET https://huggingface.co/api/models?author=…&sort=createdAt&direction=-1`。不要改成 `sort=created`，Hub 会回 400。
-- OpenRouter 目录 JSON，外加官方 RSS `https://openrouter.ai/api/v1/models?use_rss=true`。没有 key 也能扫。
-- OpenAI / Anthropic / Gemini / DeepSeek 的官方 list-models。对应环境变量为空就跳过，不算失败。
-- `config.yaml` 里的 RSS/Atom。
-- 指纹 `sha256(normalize(provider)|normalize(model_id)|normalize(version))`。
-- 每个源第一次成功只入库、不告警。量化、LoRA、adapter、`ft:` 微调不进即时告警。
-- Slack incoming webhook 只发 `official_release`、`weights_drop`、以及第一方 `catalog_add`。没有新发布不发「本小时无更新」。
-- 空 body、错误 body 不会覆盖上次成功的目录快照。Slack 失败把告警留在 `pending`/`failed`，下一小时重试。
-- 同一源连续失败 3 次发一条来源告警，恢复前不重复刷。
+开源权重看 Hugging Face 机构白名单：`GET https://huggingface.co/api/models?author=…&sort=createdAt&direction=-1`。不要改成 `sort=created`，Hub 会回 400。
+
+闭源和官方发布看博客 / RSS / changelog，跟 HF 走同一次 `scan`，systemd timer 不用改。
+
+已接上的 RSS（用这些 URL，不要再加一份）：
+
+- `https://huggingface.co/blog/feed.xml`
+- `https://qwenlm.github.io/blog/index.xml`
+- `https://openai.com/news/rss.xml`（`openai.com/blog/rss.xml` 会跳到这里，配置里不重复写）
+- `https://docs.z.ai/release-notes/new-released/rss.xml`
+- `https://deepmind.google/blog/rss.xml`（这是还活着的那条。`https://deepmind.google/discover/blog/rss.xml` 是 404，不要加）
+- OpenRouter 官方 RSS，默认只入库
+
+已接上的公开页面（无登录，403 / 地区墙不绕）：
+
+- `https://www.deepseek.com/en/news/`
+- `https://api-docs.deepseek.com/updates.md`（给人看的 HTML 是 `https://api-docs.deepseek.com/updates`）
+- `https://www.kimi.ai/blog/`
+- `https://www.minimax.io/news`
+- `https://www.anthropic.com/news`
+- `https://ai.meta.com/blog/`
+
+`https://mimo.xiaomi.com/blog` 关着。2026-11-22 拉下来是当前旗舰的单篇落地页，标题下面是 “Benchmark Comparison” 这种章节，不是文章列表。硬解析会把章节当发布。小米开源权重继续走 HF `XiaomiMiMo`。
+
+OpenAI / Anthropic / Gemini / DeepSeek 的 list-models 代码还在，`config.yaml` 里 `enabled: false`。这不是主路径。要开的话自己改配置，并且 key 为空仍然跳过。OpenRouter 目录还在，默认不推 Slack。
+
+指纹 `sha256(normalize(provider)|normalize(model_id)|normalize(version))`。每个源第一次成功只入库（`notified=baseline`）。量化、LoRA、adapter、`ft:` 不进即时告警。Slack 只发 `official_release`、`weights_drop`、第一方 `catalog_add`。没有新发布不发「本小时无更新」。空 body / 错误 body 不覆盖上次快照。Slack 失败留到下一小时。同一源连续失败 3 次发一条来源告警。
+
+## X 不在这个仓库里
+
+官方 X 账号由 Grok Bot 的每小时任务在仓库外面盯。这个 Python 服务没有 X/Twitter 客户端，不带 bearer token，不抓 x.com，也不走 Nitter 或第三方推文 RSS。
+
+只认这些号（2026-11-22 用 X user lookup 对过）。旁边的仿号不要加：
+
+| 实验室 | 账号 |
+| --- | --- |
+| OpenAI | @OpenAI、@OpenAIDevs |
+| Anthropic | @AnthropicAI、@claudeai |
+| Gemini / Google | @GoogleDeepMind 为主。@GoogleAI、@GeminiApp 是更吵的产品和品牌号 |
+| Meta | 只认 @AIatMeta。@metaai 是迁走后的空壳 |
+| Hugging Face | @huggingface，可选的新闻补充 |
+| DeepSeek | @deepseek_ai，他们自己说这是唯一官方号 |
+| Kimi | @Kimi_Moonshot |
+| Qwen | @Alibaba_Qwen |
+| 小米 MiMo | @XiaomiMiMo；API 动态看 @XiaomiMiMoDevs |
+| Z.ai / GLM | 只认 @Zai_org |
+| MiniMax | @MiniMax_AI（简介写了 official，未认证） |
+| ByteDance Seed | @ByteDanceSeed_（官方号，帖子还很少；开源权重仍以 HF `ByteDance-Seed` 为准） |
+| 百度 | @Baidu_ERNIE |
+| 腾讯混元 | @TencentHunyuan |
+
+明确不收：@Anthropic（无关个人）、@ZhipuAI、@ChatGLM、@metaai、@MoonshotAi、@minimaxAI、@bytedanceSeed。
 
 ## 还没做
 
-这些模块在仓库里留了位置，扫描不会请求它们：
-
-- Ark、DashScope、Moonshot、Zhipu 的 list-models（`model_radar/adapters/ark.py` 等）
-- 百度千帆、腾讯混元、小米 MiMo、MiniMax、DeepSeek updates、百炼新模型的 HTML changelog（`html_changelog.py`，`config.yaml` 里 `enabled: false`）
-- 每天 08:00 Asia/Shanghai 的定时 digest。`digest` 命令可以手动跑，timer 没挂它
-- 别名图。`aliases` 表只记了 `provider:model_id`，不会把 OpenRouter slug 和 HF repo 并成一条
+- Ark、DashScope、Moonshot、Zhipu 的 list-models
+- 千帆、混元、百炼、MiMo 文档站这些还没验证成稳定文章索引的 HTML，配置里关着
+- 每天 08:00 Asia/Shanghai 的定时 digest。`digest` 可以手动跑
+- 别名图。同一发布出现在 HF 和博客上，现在可能各报一次
 
 ## 安装
 
@@ -43,10 +84,10 @@ cp .env.example .env
 | --- | --- |
 | `SLACK_WEBHOOK_URL` | Slack incoming webhook。空着则告警留在库里，扫描照常退出 0 |
 | `HF_TOKEN` | 可选。公开机构不填也能扫 |
-| `OPENAI_API_KEY` | 空则跳过 `https://api.openai.com/v1/models` |
-| `ANTHROPIC_API_KEY` | 空则跳过 `https://api.anthropic.com/v1/models` |
-| `GEMINI_API_KEY` | 空则跳过 `https://generativelanguage.googleapis.com/v1beta/models`。key 放 header，不进 URL |
-| `DEEPSEEK_API_KEY` | 空则跳过 `https://api.deepseek.com/models` |
+| `OPENAI_API_KEY` | list-models 默认关。打开 `providers.openai.enabled` 后，空 key 仍跳过 `https://api.openai.com/v1/models` |
+| `ANTHROPIC_API_KEY` | 同上，`https://api.anthropic.com/v1/models` |
+| `GEMINI_API_KEY` | 同上，`https://generativelanguage.googleapis.com/v1beta/models`。key 放 header，不进 URL |
+| `DEEPSEEK_API_KEY` | 同上，`https://api.deepseek.com/models`。DeepSeek 的主路径是新闻页和 `updates.md` |
 | `OPENROUTER_API_KEY` | 可选。不填也扫公开目录和 RSS |
 | `ARK_API_KEY` / `DASHSCOPE_API_KEY` / `MOONSHOT_API_KEY` / `ZHIPU_API_KEY` | 后续切片，MVP 不读 |
 
@@ -69,6 +110,8 @@ OpenRouter 上新出现的模型记成 `catalog_add`，默认不推 Slack（路�
 `digest` 不带 `--send` 只打印还没通知的 changelog、非第一方目录新增、价格/上下文变更和来源恢复。没有内容时不打印、不请求 Slack。
 
 ## systemd
+
+`deploy/model-radar.timer` 每小时跑的就是 `python -m model_radar scan`。上面的 RSS 和页面已经写在 `config.yaml` 里，部署后这条 timer 会一起扫，不用再加单元。
 
 宿主时区设成上海，timer 的整点才和展示时间一致：
 

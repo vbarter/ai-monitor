@@ -204,6 +204,7 @@ huggingface:
 providers:
   openai:
     env: OPENAI_API_KEY
+    enabled: true
 rss: []
 alerts:
   max_immediate_per_hour: 2
@@ -245,6 +246,7 @@ huggingface:
 providers:
   deepseek:
     env: DEEPSEEK_API_KEY
+    enabled: true
 rss: []
 alerts:
   slack_webhook_env: SLACK_WEBHOOK_URL
@@ -415,6 +417,7 @@ huggingface:
 providers:
   openai:
     env: OPENAI_API_KEY
+    enabled: true
   ark:
     env: ARK_API_KEY
     enabled: true

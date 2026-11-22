@@ -7,13 +7,18 @@ catalog id.
 
 from __future__ import annotations
 
+import re
 import xml.etree.ElementTree as ET
 from urllib.parse import urlparse
 
 from model_radar.adapters.base import Adapter, CollectResult, Entry, FetchContext, etag_headers, failure
-from model_radar.classify import release_keyword_hit
+from model_radar.classify import feed_decision
 from model_radar.config import FeedSpec
 from model_radar.http import RemoteError, read_xml
+
+_DATE_TITLE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_TAGS = re.compile(r"<[^>]+>")
+_HREF = re.compile(r"""href=["']([^"']+)["']""", re.I)
 
 
 def _local(tag: str) -> str:
@@ -64,7 +69,12 @@ def parse_feed(xml_bytes: bytes) -> list[dict[str, str]]:
         guid = _text(node, "guid") or _text(node, "id")
         title = _text(node, "title")
         link = _link(node)
-        summary = _text(node, "description") or _text(node, "summary") or _text(node, "content")
+        summary = (
+            _text(node, "description")
+            or _text(node, "summary")
+            or _text(node, "encoded")
+            or _text(node, "content")
+        )
         published = _text(node, "pubDate") or _text(node, "published") or _text(node, "updated")
         items.append(
             {
@@ -76,6 +86,17 @@ def parse_feed(xml_bytes: bytes) -> list[dict[str, str]]:
             }
         )
     return items
+
+
+def _dated_release_title(title: str, summary_html: str, provider: str) -> str:
+    """Z.ai's release RSS titles the item with the date. Pull a model slug from the body."""
+    if not _DATE_TITLE.fullmatch((title or "").strip()):
+        return title
+    for href in _HREF.findall(summary_html or ""):
+        slug = urlparse(href).path.strip("/").split("/")[-1]
+        if slug and re.search(r"\d", slug) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{2,}", slug):
+            return f"{slug} ({title.strip()})"
+    return f"{provider} release {title.strip()}"
 
 
 def openrouter_identity(link: str, guid: str) -> tuple[str, str]:
@@ -114,22 +135,24 @@ class RssAdapter(Adapter):
         for item in items:
             title = item["title"]
             summary = item["summary"]
-            blob = f"{title}\n{summary}"
-            if self.feed.filter == "release_keywords":
-                matched = release_keyword_hit(blob)
-                kind = "official_release" if matched else "changelog_note"
-                first_party = bool(self.feed.first_party) and matched
-            else:
-                kind = self.feed.kind
-                first_party = bool(self.feed.first_party) and kind in {
-                    "official_release",
-                    "catalog_add",
-                    "weights_drop",
-                }
+            plain = " ".join(_TAGS.sub(" ", summary).split())
+            title = _dated_release_title(title, summary, self.provider)
+            blob = f"{title}\n{plain}"
+            kind, first_party = feed_decision(
+                blob,
+                self.feed.filter,
+                default_kind=self.feed.kind,
+                first_party=self.feed.first_party,
+            )
             if self.feed.id_mode == "openrouter":
                 model_id, version = openrouter_identity(item["link"], item["guid"])
             else:
-                model_id = item["guid"] or item["link"] or title
+                guid = item["guid"]
+                link = item["link"]
+                if guid.startswith(("http://", "https://")):
+                    model_id = guid
+                else:
+                    model_id = link or guid or title
                 version = ""
             if not model_id:
                 continue

@@ -84,6 +84,35 @@ def release_keyword_hit(text: str) -> bool:
     return verb and family
 
 
+# Official news indexes are already curated. A leading "Introducing" or a
+# version token (K3, V4.1, M3.1) is enough; a bare family name is not, so
+# "the making of Claude Code" stays a digest note.
+_LEAD_RELEASE = re.compile(r"(?i)^(?:introducing|announcing|releasing|released|发布|开源)\b")
+_VERSION_TOKEN = re.compile(
+    r"(?i)(?:\b(?:deepseek|qwen|claude|gemini|llama|kimi|mimo|minimax|glm|gpt|hunyuan|ernie|doubao|seed)[- ]?\d|\b[vkmh]\d+(?:\.\d+)?|\d+\.\d+)"
+)
+
+
+def official_page_hit(text: str) -> bool:
+    raw = (text or "").strip()
+    if release_keyword_hit(raw):
+        return True
+    if _LEAD_RELEASE.search(raw):
+        return True
+    return bool(_VERSION_TOKEN.search(raw))
+
+
+def feed_decision(text: str, mode, *, default_kind: str, first_party: bool) -> tuple[str, bool]:
+    """Return (kind, first_party) for one RSS or changelog item."""
+    if mode in (False, "false", "", None):
+        kind = default_kind
+        party = bool(first_party) and kind in {"official_release", "catalog_add", "weights_drop"}
+        return kind, party
+    matched = official_page_hit(text) if mode == "official_page" else release_keyword_hit(text)
+    kind = "official_release" if matched else "changelog_note"
+    return kind, bool(first_party) and matched
+
+
 def is_user_finetune(model_id: str) -> bool:
     return bool(_FINETUNE.search(model_id or ""))
 

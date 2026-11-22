@@ -20,6 +20,10 @@ def test_shipped_config_has_no_secrets_and_mvp_flags():
     assert config.huggingface.per_author_limit == 40
     assert config.providers["openrouter"].optional is True
     assert config.providers["openrouter"].enabled is True
+    assert config.providers["openai"].enabled is False
+    assert config.providers["anthropic"].enabled is False
+    assert config.providers["gemini"].enabled is False
+    assert config.providers["deepseek"].enabled is False
     assert config.providers["ark"].enabled is False
     assert config.providers["ark"].implemented is False
     assert config.alerts.router_catalog_immediate is False
@@ -27,8 +31,22 @@ def test_shipped_config_has_no_secrets_and_mvp_flags():
     feed = {item.id: item for item in config.rss}
     assert feed["openrouter-rss"].filter is False
     assert feed["openrouter-rss"].id_mode == "openrouter"
-    assert feed["openrouter-rss"].url == "https://openrouter.ai/api/v1/models?use_rss=true"
-    assert all(page.enabled is False for page in config.changelogs)
+    assert feed["hf-blog"].url == "https://huggingface.co/blog/feed.xml"
+    assert feed["qwen-legacy-blog"].url == "https://qwenlm.github.io/blog/index.xml"
+    assert feed["openai-news"].url == "https://openai.com/news/rss.xml"
+    assert feed["zai-releases"].url == "https://docs.z.ai/release-notes/new-released/rss.xml"
+    assert feed["zai-releases"].filter is False
+    assert feed["deepmind"].url == "https://deepmind.google/blog/rss.xml"
+    assert "deepmind.google/discover/blog/rss.xml" not in text
+    pages = {page.id: page for page in config.changelogs}
+    assert pages["deepseek-news"].enabled is True
+    assert pages["deepseek-updates"].url == "https://api-docs.deepseek.com/updates.md"
+    assert pages["kimi-blog"].enabled is True
+    assert pages["minimax-news"].enabled is True
+    assert pages["anthropic-news"].enabled is True
+    assert pages["meta-blog"].enabled is True
+    assert pages["mimo-blog"].enabled is False
+    assert pages["mimo-blog"].url == "https://mimo.xiaomi.com/blog"
     config.exclude_regexes()
 
 

@@ -28,11 +28,14 @@ DEFAULT_AUTHORS = (
 
 IMPLEMENTED_PROVIDERS = {"openai", "anthropic", "gemini", "deepseek", "openrouter"}
 
+# List-models stays in the tree, but it is not the primary signal.
+LIST_MODEL_PROVIDERS = {"openai", "anthropic", "gemini", "deepseek"}
+
 DEFAULT_PROVIDERS = {
-    "openai": {"env": "OPENAI_API_KEY"},
-    "anthropic": {"env": "ANTHROPIC_API_KEY"},
-    "gemini": {"env": "GEMINI_API_KEY"},
-    "deepseek": {"env": "DEEPSEEK_API_KEY"},
+    "openai": {"env": "OPENAI_API_KEY", "enabled": False},
+    "anthropic": {"env": "ANTHROPIC_API_KEY", "enabled": False},
+    "gemini": {"env": "GEMINI_API_KEY", "enabled": False},
+    "deepseek": {"env": "DEEPSEEK_API_KEY", "enabled": False},
     "openrouter": {"env": "OPENROUTER_API_KEY", "optional": True},
     "ark": {"env": "ARK_API_KEY"},
     "dashscope": {"env": "DASHSCOPE_API_KEY"},
@@ -71,6 +74,14 @@ DEFAULT_RSS = (
         "provider": "alibaba",
         "url": "https://qwenlm.github.io/blog/index.xml",
         "filter": "release_keywords",
+    },
+    {
+        "id": "zai-releases",
+        "provider": "zhipu",
+        "url": "https://docs.z.ai/release-notes/new-released/rss.xml",
+        "filter": False,
+        "kind": "official_release",
+        "first_party": True,
     },
     {
         "id": "openrouter-rss",
@@ -121,6 +132,8 @@ class ChangelogSpec:
     provider: str
     url: str
     enabled: bool = False
+    profile: str = ""
+    filter: str | bool = "official_page"
 
 
 @dataclass
@@ -157,6 +170,8 @@ def _providers_from(raw: dict) -> dict[str, ProviderSpec]:
         implemented = name in IMPLEMENTED_PROVIDERS
         if "enabled" in value:
             enabled = bool(value.get("enabled"))
+        elif name in LIST_MODEL_PROVIDERS:
+            enabled = False
         else:
             enabled = implemented
         specs[name] = ProviderSpec(
@@ -233,12 +248,15 @@ def load_config(path: str | Path) -> Config:
 
     changelogs: list[ChangelogSpec] = []
     for item in data.get("changelogs") or []:
+        filter_value = item.get("filter", "official_page")
         changelogs.append(
             ChangelogSpec(
                 id=str(item["id"]),
                 provider=str(item.get("provider") or "unknown"),
                 url=str(item["url"]),
                 enabled=bool(item.get("enabled", False)),
+                profile=str(item.get("profile") or ""),
+                filter=filter_value if isinstance(filter_value, bool) else str(filter_value),
             )
         )
 

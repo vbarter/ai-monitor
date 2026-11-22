@@ -1,6 +1,6 @@
 import pytest
 
-from model_radar.classify import compile_patterns, is_noise, is_user_finetune, release_keyword_hit
+from model_radar.classify import compile_patterns, is_noise, is_user_finetune, official_page_hit, release_keyword_hit
 from model_radar.classify import DEFAULT_EXCLUDE
 
 
@@ -21,6 +21,22 @@ PATTERNS = compile_patterns([DEFAULT_EXCLUDE])
 )
 def test_release_keywords(text, hit):
     assert release_keyword_hit(text) is hit
+
+
+@pytest.mark.parametrize(
+    "text, hit",
+    [
+        ("Kimi K3.1 Pro", True),
+        ("DeepSeek-V3.2: Pushing the Frontier", True),
+        ("Introducing Muse Spark", True),
+        ("MiniMax Speech 2.8", True),
+        ("The making of Claude Code", False),
+        ("PerceptionBench", False),
+        ("Anthropic files S-1 with the SEC", False),
+    ],
+)
+def test_official_page_signal(text, hit):
+    assert official_page_hit(text) is hit
 
 
 def test_quant_lora_and_finetune_are_noise():
