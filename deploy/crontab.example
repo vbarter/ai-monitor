@@ -1,0 +1,6 @@
+# Supplement to the systemd timer. The timer is the default.
+# Install with: sudo cp deploy/crontab.example /etc/cron.d/model-radar
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+TZ=Asia/Shanghai
+0 * * * * ai-monitor cd /opt/ai-monitor && /opt/ai-monitor/.venv/bin/python -m model_radar scan --config /opt/ai-monitor/config.yaml --db /opt/ai-monitor/data/model_radar.sqlite

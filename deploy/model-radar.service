@@ -1,0 +1,17 @@
+[Unit]
+Description=model_radar foundation-model scan
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ai-monitor
+Group=ai-monitor
+WorkingDirectory=/opt/ai-monitor
+EnvironmentFile=-/opt/ai-monitor/.env
+ExecStart=/opt/ai-monitor/.venv/bin/python -m model_radar scan --config /opt/ai-monitor/config.yaml --db /opt/ai-monitor/data/model_radar.sqlite
+TimeoutStartSec=600
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

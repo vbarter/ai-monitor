@@ -1,0 +1,85 @@
+# Committed config. No secrets. Webhooks and API keys live in the environment.
+# Host timezone should be Asia/Shanghai; the process also formats times in that zone.
+
+timezone: Asia/Shanghai
+schedule: "0 * * * *"          # documentation; the systemd timer is what actually fires
+database: data/model_radar.sqlite
+quiet_hours: null
+
+alerts:
+  slack_webhook_env: SLACK_WEBHOOK_URL
+  slack_channel: "#自媒体"
+  immediate_kinds: [official_release, weights_drop, catalog_add]
+  digest_hour: 8                 # later slice: not scheduled by the MVP timer
+  max_immediate_per_hour: 8
+  router_catalog_immediate: false
+
+huggingface:
+  enabled: true
+  token_env: HF_TOKEN
+  per_author_limit: 40
+  authors:
+    - Qwen
+    - deepseek-ai
+    - ByteDance-Seed
+    - XiaomiMiMo
+    - moonshotai
+    - zai-org
+    - MiniMaxAI
+    - tencent
+    - baidu
+    - meta-llama
+    - google
+    - openai
+  # facebook / microsoft are easy to add; they are off until you want them.
+  exclude_patterns:
+    - '(?i)(gguf|awq|gptq|mlx|exl2|exl3|onnx|bnb|fp8|fp4|int4|int8|lora|adapter|\d+bit|\d+(?:\.\d+)?bpw)'
+
+providers:
+  openai:
+    env: OPENAI_API_KEY
+  anthropic:
+    env: ANTHROPIC_API_KEY
+  gemini:
+    env: GEMINI_API_KEY
+  deepseek:
+    env: DEEPSEEK_API_KEY
+  openrouter:
+    env: OPENROUTER_API_KEY
+    optional: true
+  # Later slices. Enabled false so the hourly run does not log a skip for each.
+  ark:
+    env: ARK_API_KEY
+    enabled: false
+  dashscope:
+    env: DASHSCOPE_API_KEY
+    enabled: false
+    workspace_id: null
+  moonshot:
+    env: MOONSHOT_API_KEY
+    enabled: false
+  zhipu:
+    env: ZHIPU_API_KEY
+    enabled: false
+  siliconflow:
+    env: SILICONFLOW_API_KEY
+    enabled: false
+
+# HTML changelogs are a later slice. Listed so the URLs stay with the config.
+changelogs:
+  - {id: kimi, provider: moonshot, url: "https://platform.kimi.ai/docs/platform-changelog", enabled: false}
+  - {id: zai, provider: zhipu, url: "https://docs.z.ai/release-notes/new-released", enabled: false}
+  - {id: minimax, provider: minimax, url: "https://platform.minimax.io/docs/release-notes/models", enabled: false}
+  - {id: qianfan, provider: baidu, url: "https://cloud.baidu.com/doc/qianfan/s/Kmh4stnjp", enabled: false}
+  - {id: mimo-news, provider: xiaomi, url: "https://mimo.mi.com/docs/zh-CN/news", enabled: false}
+  - {id: deepseek-updates, provider: deepseek, url: "https://api-docs.deepseek.com/zh-cn/updates/", enabled: false}
+  - {id: bailian-new, provider: alibaba, url: "https://help.aliyun.com/zh/model-studio/newly-released-models", enabled: false}
+  - {id: hunyuan, provider: tencent, url: "https://hunyuan.tencent.com/model/open-source-model", enabled: false}
+
+rss:
+  - {id: openai-news, provider: openai, url: "https://openai.com/news/rss.xml", filter: release_keywords}
+  - {id: openai-release-notes, provider: openai, url: "https://openai.com/products/release-notes/rss.xml", filter: release_keywords}
+  - {id: deepmind, provider: google, url: "https://deepmind.google/blog/rss.xml", filter: release_keywords}
+  - {id: hf-blog, provider: huggingface, url: "https://huggingface.co/blog/feed.xml", filter: release_keywords}
+  - {id: qwen-legacy-blog, provider: alibaba, url: "https://qwenlm.github.io/blog/index.xml", filter: release_keywords}
+  - {id: openrouter-rss, provider: openrouter, url: "https://openrouter.ai/api/v1/models?use_rss=true", filter: false, kind: catalog_add, first_party: false, id_mode: openrouter}
